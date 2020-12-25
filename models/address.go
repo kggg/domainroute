@@ -4,7 +4,7 @@ import "time"
 
 type Address struct {
 	Domainname string
-	Iplist     []string
+	Ipaddr     string
 	Created    time.Time
 }
 
@@ -14,8 +14,8 @@ func NewAddress() *Address {
 }
 
 // Create 新增一个Address结构的数据
-func (c *Address) Create() {
-
+func (c *Address) Create(dname, ipaddr string, ctime time.Time) *Address {
+	return &Address{Domainname: dname, Ipaddr: ipaddr, Created: ctime}
 }
 
 // Read 读取数据

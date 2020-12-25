@@ -37,6 +37,9 @@ func main() {
 		}(dname)
 	}
 	wg.Wait()
-	// 2, 设置路由
 
+	// 2, 设置路由
+	// parser route from file route.ini and generate rule
+
+	// add the route into system
 }
