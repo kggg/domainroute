@@ -4,6 +4,7 @@ import (
 	"domainroute/models"
 	"domainroute/resolv"
 	"fmt"
+	"os/exec"
 	"strings"
 	"sync"
 )
@@ -16,8 +17,10 @@ func main() {
 		return
 	}
 	var wg sync.WaitGroup
+
 	for _, dname := range domainlist {
-		dname = strings.TrimSuffix(dname, "\n")
+		dname = strings.SplitN(dname, " ", 2)[0]
+		//dname = strings.TrimSuffix(dname, "\n")
 		wg.Add(1)
 		go func(dname string) {
 			defer wg.Done()
@@ -40,6 +43,37 @@ func main() {
 
 	// 2, 设置路由
 	// parser route from file route.ini and generate rule
+	for _, line := range domainlist {
+		dname := strings.SplitN(line, " ", 2)[0]
+		rule := strings.SplitN(line, " ", 2)[1]
+		rule = strings.TrimSuffix(rule, "\n")
+		wg.Add(1)
+		go func(dname string) {
+			defer wg.Done()
+			iplist, err := models.ReadIPFormFile(dname)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			for _, v := range iplist {
+				//fmt.Printf("ip route add %s %s\n", v, rule)
+				cmd1 := exec.Command("/sbin/ip", "del", v)
+				if _, err = cmd1.Output(); err != nil {
+					fmt.Println(err)
+					continue
+				}
+				cmd2 := exec.Command("/sbin/ip", "add", v, rule)
+				out, err := cmd2.Output()
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				fmt.Println(string(out))
+			}
 
-	// add the route into system
+		}(dname)
+
+	}
+	wg.Wait()
+
 }

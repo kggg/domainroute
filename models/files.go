@@ -13,10 +13,6 @@ import (
 //ReadDomain 从文件domainpath中读取需要解析的域名
 func ReadDomain() ([]string, error) {
 	content, err := readFromFile(domainpath)
-	for i, v := range content {
-		ipstr := strings.SplitN(v, " ", 2)[0]
-		content[i] = ipstr
-	}
 	return content, err
 }
 
@@ -86,6 +82,19 @@ func readFromFile(filename string) ([]string, error) {
 			return nil, fmt.Errorf("readline error: %w", err)
 		}
 		content = append(content, str)
+	}
+	return content, nil
+}
+
+// ReadIPFormFile 从存储文件中读取IP列表
+func ReadIPFormFile(dname string) ([]string, error) {
+	filenamepath := iplistpath + "/" + dname
+	content, err := readFromFile(filenamepath)
+	if err != nil {
+		return nil, err
+	}
+	for i, v := range content {
+		content[i] = strings.Split(v, " ")[0]
 	}
 	return content, nil
 }
