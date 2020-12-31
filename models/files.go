@@ -81,6 +81,7 @@ func readFromFile(filename string) ([]string, error) {
 			}
 			return nil, fmt.Errorf("readline error: %w", err)
 		}
+		str = strings.TrimSuffix(str, "\n")
 		content = append(content, str)
 	}
 	return content, nil
@@ -107,20 +108,38 @@ func Compare(newiplist, oldiplist []string) ([]string, error) {
 	var iplist []string
 	now := time.Now().Format(timeLayout)
 
-	for i := 0; i < len(newiplist); i++ {
-		iplist = append(iplist, newiplist[i]+" "+now+"\n")
-		for j := 0; j < len(oldiplist); j++ {
-			if newiplist[i] == strings.Split(oldiplist[j], " ")[0] {
+	for i, v1 := range newiplist {
+
+		for j, v2 := range oldiplist {
+
+			if v1 == strings.Split(v2, " ")[0] {
+				//fmt.Println("the same is ", newiplist[i])
 				//如果之前的保存时间超过半年没有更新， 则去掉这个IP地址
-				pretime, err := timeConversion(strings.SplitN(oldiplist[j], " ", 2)[1])
+				ptime := strings.SplitN(v2, " ", 2)[1]
+				ptime = strings.TrimSuffix(ptime, "\n")
+				pretime, err := timeConversion(ptime)
 				if err != nil {
+					//fmt.Println("parse time error")
 					continue
 				}
 				if time.Now().Unix()-pretime >= 15552000 {
+					//fmt.Println("overrise time")
 					continue
 				}
+
+				iplist = append(iplist, v1+" "+now+"\n")
 				//移除和newiplist相同的选项
-				oldiplist = append(oldiplist[:j], oldiplist[j+1:]...)
+				if len(oldiplist) <= 1 {
+					oldiplist = nil
+				} else {
+					oldiplist = removeElement(oldiplist, j)
+				}
+				if len(newiplist) <= 1 {
+					newiplist = nil
+				} else {
+					newiplist = removeElement(newiplist, i)
+				}
+
 			}
 		}
 	}
@@ -128,6 +147,12 @@ func Compare(newiplist, oldiplist []string) ([]string, error) {
 	//剩下没有匹配追加进iplist
 	if len(oldiplist) > 0 {
 		iplist = append(iplist, oldiplist...)
+	}
+	if len(newiplist) > 0 {
+		for _, v := range newiplist {
+			fmt.Println(v)
+			iplist = append(iplist, v+" "+now+"\n")
+		}
 	}
 	return iplist, nil
 }
@@ -149,4 +174,9 @@ func timeConversion(t string) (int64, error) {
 	}
 	timeUnix := times.Unix()
 	return timeUnix, nil
+}
+
+func removeElement(s []string, i int) []string {
+	s[len(s)-1], s[i] = s[i], s[len(s)-1]
+	return s[:len(s)-1]
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"domainroute/models"
-	"domainroute/resolv"
 	"fmt"
-	"os/exec"
 	"strings"
 	"sync"
+
+	"github.com/kggg/domainroute/models"
+	"github.com/kggg/domainroute/resolv"
 )
 
 func main() {
@@ -54,25 +54,13 @@ func main() {
 				return
 			}
 			for _, v := range iplist {
-				//fmt.Printf("ip route add %s %s\n", v, rule)
-				/*
-					cmd1 := exec.Command("/sbin/ip", "del", v)
-					if _, err = cmd1.Output(); err != nil {
-						fmt.Println(err)
-						continue
-					}
-				*/
 				//需要检测路由表是否有重复的规则
 				content[1] = strings.TrimSuffix(content[1], "\n")
-				cmd := " ip route add " + v + content[1]
-				cmd2 := exec.Command("/bin/bash", "-c ", cmd)
-				out, err := cmd2.Output()
+				err := models.HandleRoute(v, content[1])
 				if err != nil {
 					fmt.Println(err)
-					//continue
+					continue
 				}
-				fmt.Println(string(out))
-
 			}
 
 		}(content)
