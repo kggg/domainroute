@@ -50,7 +50,7 @@ func SaveToFile(dname string, newiplist []string) error {
 
 		var alliplist string
 		for _, v := range iplist {
-			alliplist += v
+			alliplist += v + "\n"
 		}
 		//fmt.Println(filenamepath)
 		err = ioutil.WriteFile(filenamepath, []byte(alliplist), 644)
@@ -87,6 +87,35 @@ func readFromFile(filename string) ([]string, error) {
 	return content, nil
 }
 
+/*
+type RouteAddress struct {
+	Addr    string
+	Created string
+}
+
+func (c *RouteAddress) Create(addr, created string) *RouteAddress {
+	c.Addr = add
+	c.Created = created
+	return c
+}
+
+func (c *RouteAddress) Parser(dname string) ([]RouteAddress, error) {
+	filenamepath := iplistpath + "/" + dname
+	content, err := readFromFile(filenamepath)
+	if err != nil {
+		return nil, err
+	}
+	var raddress []RouteAddress
+	for _, v := range content {
+		res := strings.SplitN(v, " ", 2)
+		res[1] = strings.TrimSuffix(res[1], "\n")
+		raddress = append(raddress, RouteAddress{Addr: res[0], Created: res[1]})
+	}
+	return raddress, nil
+}
+
+*/
+
 // ReadIPFormFile 从存储文件中读取IP列表
 func ReadIPFormFile(dname string) ([]string, error) {
 	filenamepath := iplistpath + "/" + dname
@@ -102,57 +131,33 @@ func ReadIPFormFile(dname string) ([]string, error) {
 
 // Compare 对比新解析得到的IP列表与已经存在文件的IP列表， 如果IP已存在，则更新此IP的存储时间， 如果没有则追加到文件的末尾
 func Compare(newiplist, oldiplist []string) ([]string, error) {
-	if len(newiplist) == 0 || len(oldiplist) == 0 {
-		return nil, fmt.Errorf("compare ip list is empty.")
-	}
-	var iplist []string
+	ipmap := make(map[string]string)
 	now := time.Now().Format(timeLayout)
 
-	for i, v1 := range newiplist {
-
-		for j, v2 := range oldiplist {
-
-			if v1 == strings.Split(v2, " ")[0] {
-				//fmt.Println("the same is ", newiplist[i])
-				//如果之前的保存时间超过半年没有更新， 则去掉这个IP地址
-				ptime := strings.SplitN(v2, " ", 2)[1]
-				ptime = strings.TrimSuffix(ptime, "\n")
-				pretime, err := timeConversion(ptime)
-				if err != nil {
-					//fmt.Println("parse time error")
-					continue
-				}
-				if time.Now().Unix()-pretime >= 15552000 {
-					//fmt.Println("overrise time")
-					continue
-				}
-
-				iplist = append(iplist, v1+" "+now+"\n")
-				//移除和newiplist相同的选项
-				if len(oldiplist) <= 1 {
-					oldiplist = nil
-				} else {
-					oldiplist = removeElement(oldiplist, j)
-				}
-				if len(newiplist) <= 1 {
-					newiplist = nil
-				} else {
-					newiplist = removeElement(newiplist, i)
-				}
-
-			}
-		}
+	for _, v1 := range newiplist {
+		fmt.Println("newip ", v1)
+		ipmap[v1] = now
 	}
 
-	//剩下没有匹配追加进iplist
-	if len(oldiplist) > 0 {
-		iplist = append(iplist, oldiplist...)
-	}
-	if len(newiplist) > 0 {
-		for _, v := range newiplist {
-			fmt.Println(v)
-			iplist = append(iplist, v+" "+now+"\n")
+	for _, v2 := range oldiplist {
+
+		//如果之前的保存时间超过半年没有更新， 则去掉这个IP地址
+		ptime := strings.SplitN(v2, " ", 2)[1]
+		ptime = strings.TrimSuffix(ptime, "\n")
+		pretime, err := timeConversion(ptime)
+		if err != nil {
+			continue
 		}
+		if time.Now().Unix()-pretime >= 15552000 {
+			continue
+		}
+		ipmap[strings.SplitN(v2, " ", 2)[0]] = ptime
+	}
+
+	var iplist []string
+	for k, v := range ipmap {
+		fmt.Printf("k is %s, time is %s\n", k, v)
+		iplist = append(iplist, k+" "+v)
 	}
 	return iplist, nil
 }
@@ -174,9 +179,4 @@ func timeConversion(t string) (int64, error) {
 	}
 	timeUnix := times.Unix()
 	return timeUnix, nil
-}
-
-func removeElement(s []string, i int) []string {
-	s[len(s)-1], s[i] = s[i], s[len(s)-1]
-	return s[:len(s)-1]
 }

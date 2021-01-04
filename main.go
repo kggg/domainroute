@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kggg/domainroute/models"
-	"github.com/kggg/domainroute/resolv"
+	"domainroute/models"
+	"domainroute/resolv"
 )
 
 func main() {
@@ -24,6 +24,7 @@ func main() {
 		wg.Add(1)
 		go func(dname string) {
 			defer wg.Done()
+			//解析域名得到IP列表
 			addr, err := resolv.Resolv(dname)
 			if err != nil {
 				fmt.Println(err)
