@@ -22,7 +22,7 @@ func checkroute(addr, rule string) bool {
 	}
 	out, err := run(cmdstr)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("check route error ", err)
 		return false
 	}
 	content := bytes.Split(out, []byte("\n"))

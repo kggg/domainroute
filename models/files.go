@@ -135,7 +135,6 @@ func Compare(newiplist, oldiplist []string) ([]string, error) {
 	now := time.Now().Format(timeLayout)
 
 	for _, v1 := range newiplist {
-		fmt.Println("newip ", v1)
 		ipmap[v1] = now
 	}
 
@@ -156,7 +155,6 @@ func Compare(newiplist, oldiplist []string) ([]string, error) {
 
 	var iplist []string
 	for k, v := range ipmap {
-		fmt.Printf("k is %s, time is %s\n", k, v)
 		iplist = append(iplist, k+" "+v)
 	}
 	return iplist, nil
