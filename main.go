@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"domainroute/models"
+	"domainroute/myerrors"
 	"domainroute/resolv"
 )
 
@@ -17,13 +18,16 @@ func main() {
 		return
 	}
 	var wg sync.WaitGroup
-
+	ch1 := make(chan struct{}, 5)
+	ch2 := make(chan struct{}, 5)
 	for _, dname := range domainlist {
+		ch1 <- struct{}{}
 		dname = strings.SplitN(dname, " ", 2)[0]
 		//dname = strings.TrimSuffix(dname, "\n")
 		wg.Add(1)
 		go func(dname string) {
 			defer wg.Done()
+
 			//解析域名得到IP列表
 			addr, err := resolv.Resolv(dname)
 			if err != nil {
@@ -37,7 +41,7 @@ func main() {
 				fmt.Println(err)
 				return
 			}
-
+			<-ch1
 		}(dname)
 	}
 	wg.Wait()
@@ -45,9 +49,11 @@ func main() {
 	// 2, 设置路由
 	// parser route from file route.ini and generate rule
 	for _, line := range domainlist {
+		ch2 <- struct{}{}
 		content := strings.SplitN(line, " ", 2)
 		wg.Add(1)
 		go func(content []string) {
+
 			defer wg.Done()
 			iplist, err := models.ReadIPFormFile(content[0])
 			if err != nil {
@@ -59,11 +65,13 @@ func main() {
 				content[1] = strings.TrimSuffix(content[1], "\n")
 				err := models.HandleRoute(v, content[1])
 				if err != nil {
-					fmt.Println(err)
+					if err != myerrors.ExistRoute {
+						fmt.Println(err)
+					}
 					continue
 				}
 			}
-
+			<-ch2
 		}(content)
 
 	}

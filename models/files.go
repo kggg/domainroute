@@ -148,6 +148,7 @@ func Compare(newiplist, oldiplist []string) ([]string, error) {
 			continue
 		}
 		if time.Now().Unix()-pretime >= 15552000 {
+			//同时要删除路由表中相关该地址的路由
 			continue
 		}
 		ipmap[strings.SplitN(v2, " ", 2)[0]] = ptime

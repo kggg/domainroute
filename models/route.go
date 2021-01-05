@@ -2,45 +2,58 @@ package models
 
 import (
 	"bytes"
+	"domainroute/myerrors"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
 func HandleRoute(addr, rule string) error {
-	if checkroute(addr, rule) {
-		return fmt.Errorf("The address %s has been existing in route table\n", addr)
+	ok, err := checkroute(addr, rule)
+	if err != nil {
+		return fmt.Errorf("checkroute error: %w\n", err)
 	}
-	err := addroute(addr, rule)
+	if ok {
+		return myerrors.ExistRoute
+	}
+	err = addroute(addr, rule)
 	return err
 }
 
-func checkroute(addr, rule string) bool {
-	cmdstr := "ip route list"
+func checkroute(addr, rule string) (bool, error) {
+	cmd := &exec.Cmd{}
 	if strings.Contains(rule, "table") {
-		cmdstr = cmdstr + " " + strings.SplitAfter(rule, "table")[1]
+		table := strings.Split(rule, "table")[1]
+		table = strings.TrimSpace(table)
+		cmd = exec.Command("/sbin/ip", "route", "list", "table", table)
+	} else {
+		cmd = exec.Command("/sbin/ip", "route", "list")
 	}
-	out, err := run(cmdstr)
+	out, err := cmd.Output()
 	if err != nil {
-		fmt.Println("check route error ", err)
-		return false
+		return false, err
 	}
+
 	content := bytes.Split(out, []byte("\n"))
 	for _, v := range content {
 		if bytes.Contains(v, []byte(addr)) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 
 }
 
+//添加addr地址到路由表中， 如果rule中有指定路由表，则添加到指定的table中
 func addroute(addr, rule string) error {
-	cmdstr := "ip route add " + addr + " " + rule
+	cmd := &exec.Cmd{}
+	cmdstrs := strings.Split(rule, " ")
 	if strings.Contains(rule, "table") {
-		cmdstr = cmdstr + " " + strings.SplitAfter(rule, "table")[1]
+		cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1], "table", cmdstrs[3])
+	} else {
+		cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1])
 	}
-	_, err := run(cmdstr)
+	_, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("add %s route error: %w", addr, err)
 	}
@@ -48,11 +61,7 @@ func addroute(addr, rule string) error {
 	return nil
 }
 
-func run(cmdstr string) ([]byte, error) {
-	cmd := exec.Command("/bin/bash", "-c", cmdstr)
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+// 删除路由, 用于删除过期的路由
+func delroute(addr string) error {
+	return nil
 }
