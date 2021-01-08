@@ -87,48 +87,6 @@ func readFromFile(filename string) ([]string, error) {
 	return content, nil
 }
 
-/*
-type RouteAddress struct {
-	Addr    string
-	Created string
-}
-
-func (c *RouteAddress) Create(addr, created string) *RouteAddress {
-	c.Addr = add
-	c.Created = created
-	return c
-}
-
-func (c *RouteAddress) Parser(dname string) ([]RouteAddress, error) {
-	filenamepath := iplistpath + "/" + dname
-	content, err := readFromFile(filenamepath)
-	if err != nil {
-		return nil, err
-	}
-	var raddress []RouteAddress
-	for _, v := range content {
-		res := strings.SplitN(v, " ", 2)
-		res[1] = strings.TrimSuffix(res[1], "\n")
-		raddress = append(raddress, RouteAddress{Addr: res[0], Created: res[1]})
-	}
-	return raddress, nil
-}
-
-*/
-
-// ReadIPFormFile 从存储文件中读取IP列表
-func ReadIPFormFile(dname string) ([]string, error) {
-	filenamepath := iplistpath + "/" + dname
-	content, err := readFromFile(filenamepath)
-	if err != nil {
-		return nil, err
-	}
-	for i, v := range content {
-		content[i] = strings.Split(v, " ")[0]
-	}
-	return content, nil
-}
-
 // Compare 对比新解析得到的IP列表与已经存在文件的IP列表， 如果IP已存在，则更新此IP的存储时间， 如果没有则追加到文件的末尾
 func Compare(newiplist, oldiplist []string) ([]string, error) {
 	ipmap := make(map[string]string)
@@ -149,6 +107,10 @@ func Compare(newiplist, oldiplist []string) ([]string, error) {
 		}
 		if time.Now().Unix()-pretime >= 15552000 {
 			//同时要删除路由表中相关该地址的路由
+			err := delroute(strings.Split(v2, " ")[0])
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 		ipmap[strings.SplitN(v2, " ", 2)[0]] = ptime
@@ -178,4 +140,24 @@ func timeConversion(t string) (int64, error) {
 	}
 	timeUnix := times.Unix()
 	return timeUnix, nil
+}
+
+// 获取路由表总数
+func parserRouteTables() ([]string, error) {
+	content, err := readFromFile(routetablePath)
+	if err != nil {
+		return nil, err
+	}
+	var tables []string
+	for _, v := range content {
+		if strings.HasPrefix(v, "#") || strings.HasPrefix(v, "255") || strings.HasPrefix(v, "254") || strings.HasPrefix(v, "253") || strings.HasPrefix(v, "250") {
+			continue
+		}
+		if strings.HasPrefix(v, "\n") || strings.HasPrefix(v, "0") {
+			continue
+		}
+		tables = append(tables, strings.Fields(v)[1])
+
+	}
+	return tables, nil
 }
