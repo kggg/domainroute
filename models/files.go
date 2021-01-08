@@ -87,6 +87,19 @@ func readFromFile(filename string) ([]string, error) {
 	return content, nil
 }
 
+// ReadIPFormFile 从存储文件中读取IP列表
+func ReadIPFormFile(dname string) ([]string, error) {
+	filenamepath := iplistpath + "/" + dname
+	content, err := readFromFile(filenamepath)
+	if err != nil {
+		return nil, err
+	}
+	for i, v := range content {
+		content[i] = strings.Split(v, " ")[0]
+	}
+	return content, nil
+}
+
 // Compare 对比新解析得到的IP列表与已经存在文件的IP列表， 如果IP已存在，则更新此IP的存储时间， 如果没有则追加到文件的末尾
 func Compare(newiplist, oldiplist []string) ([]string, error) {
 	ipmap := make(map[string]string)
