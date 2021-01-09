@@ -16,7 +16,7 @@ func ReadDomain() ([]string, error) {
 	return content, err
 }
 
-// SaveToFile
+// SaveToFile 保存域名dname解析到的IP列表iplist到文件中
 func SaveToFile(dname string, newiplist []string) error {
 	filenamepath := iplistpath + "/" + dname
 
@@ -24,7 +24,7 @@ func SaveToFile(dname string, newiplist []string) error {
 	if !ok {
 		f, err := os.Create(filenamepath)
 		if err != nil {
-			return fmt.Errorf("Create file %s error: %w\n", dname, err)
+			return fmt.Errorf("Create file %s error: %w", dname, err)
 		}
 		defer f.Close()
 
@@ -40,12 +40,12 @@ func SaveToFile(dname string, newiplist []string) error {
 		//从文件中读取已经保存的地址信息
 		oldiplist, err := readFromFile(filenamepath)
 		if err != nil {
-			return fmt.Errorf("%w\n", err)
+			return fmt.Errorf("%w", err)
 		}
 		// 对比新解析到的地址和旧文件中保存的地址
 		iplist, err := Compare(newiplist, oldiplist)
 		if err != nil {
-			return fmt.Errorf("%w\n", err)
+			return fmt.Errorf("%w", err)
 		}
 
 		var alliplist string
@@ -55,7 +55,7 @@ func SaveToFile(dname string, newiplist []string) error {
 		//fmt.Println(filenamepath)
 		err = ioutil.WriteFile(filenamepath, []byte(alliplist), 644)
 		if err != nil {
-			return fmt.Errorf("write to file %s error: %w\n", filenamepath, err)
+			return fmt.Errorf("write to file %s error: %w", filenamepath, err)
 		}
 	}
 	return nil
@@ -68,7 +68,7 @@ func readFromFile(filename string) ([]string, error) {
 
 	f, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("Read file %s error: %w\n", filename, err)
+		return nil, fmt.Errorf("Read file %s error: %w", filename, err)
 	}
 	defer f.Close()
 
@@ -146,17 +146,8 @@ func checkFileExists(filename string) bool {
 	return true
 }
 
-func timeConversion(t string) (int64, error) {
-	times, err := time.Parse(timeLayout, t)
-	if err != nil {
-		return 0, fmt.Errorf("Convert tiem error:%w\n", err)
-	}
-	timeUnix := times.Unix()
-	return timeUnix, nil
-}
-
 // 获取路由表总数
-func parserRouteTables() ([]string, error) {
+func getRouteTables() ([]string, error) {
 	content, err := readFromFile(routetablePath)
 	if err != nil {
 		return nil, err

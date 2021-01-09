@@ -6,7 +6,7 @@ import (
 )
 
 func TestRouteTables(t *testing.T) {
-	tables, err := parserRouteTables()
+	tables, err := getRouteTables()
 	if err != nil {
 		t.Errorf("%v", err)
 	}

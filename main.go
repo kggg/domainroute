@@ -18,6 +18,7 @@ func main() {
 		return
 	}
 	var wg sync.WaitGroup
+	//限制goroutine的数量为5
 	ch1 := make(chan struct{}, 5)
 	ch2 := make(chan struct{}, 5)
 	for _, dname := range domainlist {
@@ -65,10 +66,11 @@ func main() {
 				content[1] = strings.TrimSuffix(content[1], "\n")
 				err := models.HandleRoute(v, content[1])
 				if err != nil {
-					if err != errno.ExistRoute {
-						fmt.Println(err)
+					//重复的路由错误不需要打印
+					if err == errno.ExistRoute {
+						continue
 					}
-					continue
+					fmt.Println(err)
 				}
 			}
 			<-ch2
