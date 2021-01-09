@@ -2,7 +2,7 @@ package models
 
 import (
 	"bytes"
-	"domainroute/myerrors"
+	"domainroute/errno"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -46,14 +46,14 @@ func addroute(addr, rule string) error {
 				return fmt.Errorf("checkroute error: %w\n", err)
 			}
 			if ok {
-				return myerrors.ExistRoute
+				return errno.ExistRoute
 			}
 			cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1], "table", table)
 			_, err = cmd.Output()
 			if err != nil {
 				return fmt.Errorf("add %s route error: %w", addr, err)
 			}
-			fmt.Printf("add route for %s successed\n", addr)
+			fmt.Printf("add route %s for table %s successed\n", addr, table)
 		}
 
 	} else {
@@ -62,14 +62,14 @@ func addroute(addr, rule string) error {
 			return fmt.Errorf("checkroute error: %w\n", err)
 		}
 		if ok {
-			return myerrors.ExistRoute
+			return errno.ExistRoute
 		}
 		cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1])
 		_, err = cmd.Output()
 		if err != nil {
 			return fmt.Errorf("add %s route error: %w", addr, err)
 		}
-		fmt.Printf("add route for %s successed\n", addr)
+		fmt.Printf("add route %s for table main successed\n", addr)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func delroute(addr string) error {
 				return fmt.Errorf("checkroute error: %w\n", err)
 			}
 			if ok {
-				return myerrors.ExistRoute
+				return errno.ExistRoute
 			}
 			cmd = exec.Command("/sbin/ip", "route", "del", addr, "table", table)
 			_, err = cmd.Output()
@@ -103,7 +103,7 @@ func delroute(addr string) error {
 			return fmt.Errorf("checkroute error: %w\n", err)
 		}
 		if ok {
-			return myerrors.ExistRoute
+			return errno.ExistRoute
 		}
 		cmd = exec.Command("/sbin/ip", "route", "del", addr)
 		_, err = cmd.Output()

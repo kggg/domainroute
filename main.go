@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
+	"domainroute/errno"
 	"domainroute/models"
-	"domainroute/myerrors"
 	"domainroute/resolv"
 )
 
@@ -65,7 +65,7 @@ func main() {
 				content[1] = strings.TrimSuffix(content[1], "\n")
 				err := models.HandleRoute(v, content[1])
 				if err != nil {
-					if err != myerrors.ExistRoute {
+					if err != errno.ExistRoute {
 						fmt.Println(err)
 					}
 					continue

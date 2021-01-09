@@ -166,11 +166,10 @@ func parserRouteTables() ([]string, error) {
 		if strings.HasPrefix(v, "#") || strings.HasPrefix(v, "255") || strings.HasPrefix(v, "254") || strings.HasPrefix(v, "253") || strings.HasPrefix(v, "250") {
 			continue
 		}
-		if strings.HasPrefix(v, "\n") || strings.HasPrefix(v, "0") {
+		if len(v) == 0 || strings.HasPrefix(v, "0") {
 			continue
 		}
-		tables = append(tables, strings.Fields(v)[1])
-
+		tables = append(tables, strings.Split(v, " ")[1])
 	}
 	return tables, nil
 }
