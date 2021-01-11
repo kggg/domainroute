@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 //HandleRoute 根据给定的地址addr及路由规则rule处理路由， 错误返回error
@@ -19,7 +20,8 @@ func checkroute(addr, table string) (bool, error) {
 	cmd = exec.Command("/sbin/ip", "route", "list", "table", table)
 	out, err := cmd.Output()
 	if err != nil {
-		return false, fmt.Errorf("check route of %s error: %w", addr, err)
+		now := time.Now().Format(timeLayout)
+		return false, fmt.Errorf("%s check route of %s error: %w", now, addr, err)
 	}
 
 	content := bytes.Split(out, []byte("\n"))
@@ -40,6 +42,7 @@ func addroute(addr, rule string) error {
 		return err
 	}
 	cmdstrs := strings.Split(rule, " ")
+	now := time.Now().Format(timeLayout)
 	if len(tables) >= 1 {
 		for _, table := range tables {
 			ok, err := checkroute(addr, table)
@@ -52,26 +55,26 @@ func addroute(addr, rule string) error {
 			cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1], "table", table)
 			_, err = cmd.Output()
 			if err != nil {
-				return fmt.Errorf("add %s route error: %w", addr, err)
+				return fmt.Errorf("%s add %s route error: %w", now, addr, err)
 			}
-			fmt.Printf("add route %s for table %s successed\n", addr, table)
+			fmt.Printf("%s add route %s for table %s successed\n", now, addr, table)
 		}
 
-	} else {
-		ok, err := checkroute(addr, "main")
-		if err != nil {
-			return fmt.Errorf("checkroute error: %w", err)
-		}
-		if ok {
-			return errno.ExistRoute
-		}
-		cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1])
-		_, err = cmd.Output()
-		if err != nil {
-			return fmt.Errorf("add %s route error: %w", addr, err)
-		}
-		fmt.Printf("add route %s for table main successed\n", addr)
 	}
+	ok, err := checkroute(addr, "main")
+	if err != nil {
+		return fmt.Errorf("Error: %w", err)
+	}
+	if ok {
+		return errno.ExistRoute
+	}
+	cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1])
+	_, err = cmd.Output()
+	if err != nil {
+		return fmt.Errorf("%s add %s route error: %w", now, addr, err)
+	}
+	fmt.Printf("%s add route %s for table main successed\n", now, addr)
+
 	return nil
 }
 
@@ -82,35 +85,35 @@ func delroute(addr string) error {
 	if err != nil {
 		return err
 	}
+	now := time.Now().Format(timeLayout)
 	if len(tables) >= 1 {
 		for _, table := range tables {
 			ok, err := checkroute(addr, table)
 			if err != nil {
-				return fmt.Errorf("checkroute error: %w", err)
+				return fmt.Errorf("Error: %w", err)
 			}
 			if ok {
 				cmd = exec.Command("/sbin/ip", "route", "del", addr, "table", table)
 				_, err = cmd.Output()
 				if err != nil {
-					return fmt.Errorf("Delete %s route error: %w", addr, err)
+					return fmt.Errorf("%s Delete %s route error: %w", now, addr, err)
 				}
-				fmt.Printf("Remove route for %s successed\n", addr)
+				fmt.Printf("%s Remove route for %s successed\n", now, addr)
 			}
 		}
-	} else {
-		ok, err := checkroute(addr, "main")
-		if err != nil {
-			return fmt.Errorf("checkroute error: %w", err)
-		}
-		if ok {
-			cmd = exec.Command("/sbin/ip", "route", "del", addr)
-			_, err = cmd.Output()
-			if err != nil {
-				return fmt.Errorf("Delete %s route error: %w", addr, err)
-			}
-			fmt.Printf("Remove route for %s successed\n", addr)
-		}
-
 	}
+	ok, err := checkroute(addr, "main")
+	if err != nil {
+		return fmt.Errorf("Error: %w", err)
+	}
+	if ok {
+		cmd = exec.Command("/sbin/ip", "route", "del", addr)
+		_, err = cmd.Output()
+		if err != nil {
+			return fmt.Errorf("%s Delete %s route error: %w", now, addr, err)
+		}
+		fmt.Printf("%s Remove route for %s successed\n", now, addr)
+	}
+
 	return nil
 }
