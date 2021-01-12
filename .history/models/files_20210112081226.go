@@ -148,7 +148,7 @@ func checkFileExists(filename string) bool {
 
 // 获取路由表总数
 func getRouteTables() ([]string, error) {
-	content, err := readFromFile(routeTablePath)
+	content, err := readFromFile(routetablePath)
 	if err != nil {
 		return nil, err
 	}
