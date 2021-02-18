@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"domainroute/errno"
 	"domainroute/models"
 	"domainroute/resolv"
 )
@@ -48,37 +49,36 @@ func main() {
 
 	// 2, 设置路由
 	// parser route from file route.ini and generate rule
-	/*
-		ch2 := make(chan struct{}, 5)
-			for _, line := range domainlist {
-				ch2 <- struct{}{}
-				content := strings.SplitN(line, " ", 2)
-				wg.Add(1)
-				go func(content []string) {
 
-					defer wg.Done()
-					iplist, err := models.ReadIPFormFile(content[0])
-					if err != nil {
-						fmt.Println(err)
-						return
-					}
-					for _, v := range iplist {
-						//需要检测路由表是否有重复的规则
-						content[1] = strings.TrimSuffix(content[1], "\n")
-						err := models.HandleRoute(v, content[1])
-						if err != nil {
-							//重复的路由错误不需要打印
-							if err == errno.ExistRoute {
-								continue
-							}
-							fmt.Println(err)
-						}
-					}
-					<-ch2
-				}(content)
+	ch2 := make(chan struct{}, 5)
+	for _, line := range domainlist {
+		ch2 <- struct{}{}
+		content := strings.SplitN(line, " ", 2)
+		wg.Add(1)
+		go func(content []string) {
 
+			defer wg.Done()
+			iplist, err := models.ReadIPFormFile(content[0])
+			if err != nil {
+				fmt.Println(err)
+				return
 			}
-			wg.Wait()
-	*/
+			for _, v := range iplist {
+				//需要检测路由表是否有重复的规则
+				content[1] = strings.TrimSuffix(content[1], "\n")
+				err := models.HandleRoute(v, content[1])
+				if err != nil {
+					//重复的路由错误不需要打印
+					if err == errno.ExistRoute {
+						continue
+					}
+					fmt.Println(err)
+				}
+			}
+			<-ch2
+		}(content)
+
+	}
+	wg.Wait()
 
 }
