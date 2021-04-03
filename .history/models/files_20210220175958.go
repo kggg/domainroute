@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -13,7 +15,35 @@ import (
 //ReadDomain 从文件domainpath中读取需要解析的域名
 func ReadDomain() ([]string, error) {
 	content, err := readFromFile(domainpath)
+	errA := formatParser(content)
+	if errA != nil {
+		return nil, fmt.Errorf("%w", errA)
+	}
 	return content, err
+}
+
+//formatParser 检测route.ini格式是否正确
+func formatParser(content []string) error {
+	for _, v := range content {
+		sub := strings.Fields(v)
+		//检测域名格式
+		var m = regexp.MustCompile("^[a-zA-Z0-9\\-\\.]+(\\.[a-z]{2,4})$")
+		match := m.MatchString(sub[0])
+		if !match {
+			return fmt.Errorf("Validate route.ini domain: invalid [%s]", sub[0])
+		}
+		//检测中间字符是否是via
+		if sub[1] != "via" {
+			return fmt.Errorf("Validate file route.ini format error: invalid [%s]", sub[1])
+		}
+		//检测最后一格 的IP地址
+		ok := net.ParseIP(sub[2])
+		if ok == nil {
+			return fmt.Errorf("validate route.ini ipaddress error [%s]", sub[2])
+		}
+
+	}
+	return nil
 }
 
 // SaveToFile 保存域名dname解析到的IP列表iplist到文件中
@@ -82,6 +112,9 @@ func readFromFile(filename string) ([]string, error) {
 			return nil, fmt.Errorf("readline error: %w", err)
 		}
 		str = strings.TrimSuffix(str, "\n")
+		if len(str) == 0 {
+			continue
+		}
 		content = append(content, str)
 	}
 	return content, nil
@@ -148,7 +181,7 @@ func checkFileExists(filename string) bool {
 
 // 获取路由表总数
 func getRouteTables() ([]string, error) {
-	content, err := readFromFile(routetablePath)
+	content, err := readFromFile(routeTablePath)
 	if err != nil {
 		return nil, err
 	}

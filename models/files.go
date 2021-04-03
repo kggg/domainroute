@@ -39,7 +39,7 @@ func formatParser(content []string) error {
 		//检测最后一格 的IP地址
 		ok := net.ParseIP(sub[2])
 		if ok == nil {
-			return fmt.Errorf("validate route.in ipaddress error [%s]", sub[2])
+			return fmt.Errorf("validate route.ini ipaddress error [%s]", sub[2])
 		}
 
 	}
