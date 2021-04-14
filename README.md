@@ -4,6 +4,19 @@
 ## 配置文件在目录conf下
 ### app.ini
    设置app， 包含存储在文件或者mysql数据库
+
+      [base]
+      #本程序运行路径
+      basedir = /home/steven/go/network/domainroute
+      #路由模式， 保存在文件中选file, 数据库选mysql
+      mode="file"
+      #路由最长保存时间
+      routeLifetime = 7776000
+      #设备路由表路径
+      routeTablesPath = "/etc/iproute2/rt_tables"
+      #设置路由文件路径
+      routeFilePath="./conf/route.ini"
+      
 ### route.ini
    这个文件保存需要解析的域名及将这个域名指向下一跳网关
    文件格式：<br>
