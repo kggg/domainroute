@@ -1,49 +1,57 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"sync"
-
+	"domainroute/app"
 	"domainroute/errno"
-	"domainroute/models"
-	"domainroute/resolv"
+	"domainroute/utils"
+	"fmt"
+	"sync"
 )
 
 func main() {
-	// 1, 解析出域名列表, 并保存
-	domainlist, err := models.ReadDomain()
+	config, err := app.NewConfig()
 	if err != nil {
-		fmt.Println("Error: ", err)
-		return
+		panic(err)
 	}
+	// 1, 解析出域名列表, 并保存
+	domains, err := config.GetDomain()
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Println(domains)
 	var wg sync.WaitGroup
-	//限制goroutine的数量为5
 	ch1 := make(chan struct{}, 5)
-
-	for _, dname := range domainlist {
+	for _, dname := range domains {
 		ch1 <- struct{}{}
-		dname = strings.SplitN(dname, " ", 2)[0]
-		//dname = strings.TrimSuffix(dname, "\n")
+		domain := dname.Domainname
 		wg.Add(1)
-		go func(dname string) {
+		go func(domain string) {
 			defer wg.Done()
-
-			//解析域名得到IP列表
-			addr, err := resolv.Resolv(dname)
+			addr, err := utils.Resolv(domain)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-
-			// 解析出来的IP地址，加上时间点以域名为文件名存入文件中
-			err = models.SaveToFile(dname, addr)
-			if err != nil {
-				fmt.Println(err)
+			switch config.Mode {
+			case "file":
+				// 解析出来的IP地址，加上时间点以域名为文件名存入文件中
+				err = config.SaveToFile(domain, addr)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+			case "mysql":
+				err = config.SaveToDB(domain, addr)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+			default:
+				fmt.Println("Please setup app mode into conf/app.ini")
 				return
 			}
 			<-ch1
-		}(dname)
+		}(domain)
 	}
 	wg.Wait()
 
@@ -51,22 +59,33 @@ func main() {
 	// parser route from file route.ini and generate rule
 
 	ch2 := make(chan struct{}, 5)
-	for _, line := range domainlist {
+	for _, line := range domains {
 		ch2 <- struct{}{}
-		content := strings.SplitN(line, " ", 2)
 		wg.Add(1)
-		go func(content []string) {
-
+		go func(domain, gateway string) {
 			defer wg.Done()
-			iplist, err := models.ReadIPFormFile(content[0])
-			if err != nil {
-				fmt.Println(err)
-				return
+			var iplist []string
+			switch config.Mode {
+			case "file":
+				iplist, err = config.ReadIPFormFile(domain)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+			case "mysql":
+				err := config.ConnectionDB()
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				iplist, err = config.ReadIPFromDB(domain)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
 			}
 			for _, v := range iplist {
-				//需要检测路由表是否有重复的规则
-				content[1] = strings.TrimSuffix(content[1], "\n")
-				err := models.HandleRoute(v, content[1])
+				err := config.HandleRoute(v, gateway)
 				if err != nil {
 					//重复的路由错误不需要打印
 					if err == errno.ExistRoute {
@@ -76,7 +95,7 @@ func main() {
 				}
 			}
 			<-ch2
-		}(content)
+		}(line.Domainname, line.Gateway)
 
 	}
 	wg.Wait()

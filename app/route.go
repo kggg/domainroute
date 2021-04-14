@@ -1,8 +1,9 @@
-package models
+package app
 
 import (
 	"bytes"
 	"domainroute/errno"
+	"domainroute/utils"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -10,17 +11,18 @@ import (
 )
 
 //HandleRoute 根据给定的地址addr及路由规则rule处理路由， 错误返回error
-func HandleRoute(addr, rule string) error {
-	err := addroute(addr, rule)
+func (c *Config) HandleRoute(addr, gateway string) error {
+	err := c.addroute(addr, gateway)
 	return err
 }
 
+//需要检测路由表是否有重复的规则
 func checkroute(addr, table string) (bool, error) {
 	cmd := &exec.Cmd{}
 	cmd = exec.Command("/sbin/ip", "route", "list", "table", table)
 	out, err := cmd.Output()
 	if err != nil {
-		now := time.Now().Format(timeLayout)
+		now := time.Now().Format(utils.TimeLayout)
 		return false, fmt.Errorf("%s check route of %s error: %w", now, addr, err)
 	}
 
@@ -35,14 +37,13 @@ func checkroute(addr, table string) (bool, error) {
 }
 
 //添加addr地址到路由表中， 如果rule中有指定路由表，则添加到指定的table中
-func addroute(addr, rule string) error {
+func (c *Config) addroute(addr, gateway string) error {
 	cmd := &exec.Cmd{}
-	tables, err := getRouteTables()
+	tables, err := c.getRouteTables()
 	if err != nil {
 		return err
 	}
-	cmdstrs := strings.Split(rule, " ")
-	now := time.Now().Format(timeLayout)
+	now := time.Now().Format(utils.TimeLayout)
 	if len(tables) >= 1 {
 		for _, table := range tables {
 			ok, err := checkroute(addr, table)
@@ -52,7 +53,7 @@ func addroute(addr, rule string) error {
 			if ok {
 				return errno.ExistRoute
 			}
-			cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1], "table", table)
+			cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", gateway, "table", table)
 			_, err = cmd.Output()
 			if err != nil {
 				return fmt.Errorf("%s add %s route error: %w", now, addr, err)
@@ -68,7 +69,7 @@ func addroute(addr, rule string) error {
 	if ok {
 		return errno.ExistRoute
 	}
-	cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", cmdstrs[1])
+	cmd = exec.Command("/sbin/ip", "route", "add", addr, "via", gateway)
 	_, err = cmd.Output()
 	if err != nil {
 		return fmt.Errorf("%s add %s route error: %w", now, addr, err)
@@ -79,13 +80,13 @@ func addroute(addr, rule string) error {
 }
 
 // 删除路由, 用于删除过期的路由
-func delroute(addr string) error {
+func (c *Config) delroute(addr string) error {
 	cmd := &exec.Cmd{}
-	tables, err := getRouteTables()
+	tables, err := c.getRouteTables()
 	if err != nil {
 		return err
 	}
-	now := time.Now().Format(timeLayout)
+	now := time.Now().Format(utils.TimeLayout)
 	if len(tables) >= 1 {
 		for _, table := range tables {
 			ok, err := checkroute(addr, table)
@@ -116,4 +117,23 @@ func delroute(addr string) error {
 	}
 
 	return nil
+}
+
+// 获取路由表总数
+func (c *Config) getRouteTables() ([]string, error) {
+	content, err := utils.ReadFromFile(c.RouteTablesPath)
+	if err != nil {
+		return nil, err
+	}
+	var tables []string
+	for _, v := range content {
+		if strings.HasPrefix(v, "#") || strings.HasPrefix(v, "255") || strings.HasPrefix(v, "254") || strings.HasPrefix(v, "253") || strings.HasPrefix(v, "250") {
+			continue
+		}
+		if len(v) == 0 || strings.HasPrefix(v, "0") {
+			continue
+		}
+		tables = append(tables, strings.Split(v, " ")[1])
+	}
+	return tables, nil
 }
